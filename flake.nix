@@ -16,7 +16,7 @@
 
       src = pkgs.fetchurl {
         url = "https://nodejs.org/dist/v${version}/node-v${version}-linux-x64.tar.xz";
-        hash = pkgs.lib.fakeHash;
+        hash = "sha256-YXCy1HThxib0PP863BGN+f47VzJYpPw9hQyNvGsHm70=";
       };
 
       nativeBuildInputs = [ pkgs.autoPatchelfHook ];
