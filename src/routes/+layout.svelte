@@ -1,12 +1,11 @@
 <script lang="ts">
-	import favicon from '#lib/assets/favicon.svg';
 	import type { LayoutProps } from './$types';
 
 	let { children }: LayoutProps = $props(); 
 </script>
 
-<svelte:head>
+<!-- <svelte:head>
 	<link rel="icon" href={favicon} />
-</svelte:head>
+</svelte:head> -->
 
 {@render children()}
