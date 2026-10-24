@@ -3,6 +3,7 @@
   import { toast } from 'svelte-sonner';
   import { gunzipSync } from 'fflate';
   import { unpackTar } from 'modern-tar';
+  import { renderHelmTemplate } from '#lib';
 
   const MAX_UPLOAD_SIZE = 50 * 1024 * 1024;
   const MAX_UNCOMPRESSED_SIZE = 100 * 1024 * 1024;
@@ -12,9 +13,54 @@
   let chartFiles = $state<Record<string, string>>({});
   let chartMetadata = $state<{ name: string; version: string } | null>(null);
 
+  let renderedCharts = $state<Record<string, string>>({});
+  let isRendering = $state(false);
+
+  $effect(() => {
+    const files = chartFiles;
+    const content = editorContent;
+    const name = chartMetadata?.name;
+    const version = chartMetadata?.version;
+
+    if (!files || Object.keys(files).length === 0) {
+      renderedCharts = {};
+      return;
+    }
+
+    isRendering = true;
+
+    renderHelmTemplate(files, content, name, version)
+      .then((result) => {
+        renderedCharts = result;
+      })
+      .catch((err) => {
+        toast.error(`Error while rendering: ${err.message}`);
+        renderedCharts = {};
+      })
+      .finally(() => {
+        isRendering = false;
+      });
+  });
+
   function clearState() {
     chartFiles = {};
     chartMetadata = null;
+  }
+
+  function normalizeChartPaths(rawFiles: Record<string, string>): Record<string, string> {
+    const normalized: Record<string, string> = {};
+    const keys = Object.keys(rawFiles);
+
+    const first = keys[0];
+    const slash = first.indexOf('/');
+    const prefix = slash > 0 ? first.slice(0, slash + 1) : '';
+
+    for (const [path, content] of Object.entries(rawFiles)) {
+      const cleanPath = prefix && path.startsWith(prefix) ? path.slice(prefix.length) : path;
+      normalized[cleanPath] = content;
+    }
+
+    return normalized;
   }
 
   function validateHelmChart(files: Record<string, string>) {
@@ -34,6 +80,22 @@
     }
 
     chartFiles = files;
+    const chartYamlKey = Object.keys(files).find((p) => p === 'Chart.yaml' || p === 'Chart.yml');
+
+    if (chartYamlKey) {
+      try {
+        const yaml = files[chartYamlKey];
+        const nameMatch = yaml.match(/^name:\s*(.+)$/m);
+        const versionMatch = yaml.match(/^version:\s*(.+)$/m);
+
+        chartMetadata = {
+          name: nameMatch?.[1]?.trim() ?? 'chart',
+          version: versionMatch?.[1]?.trim() ?? '0.1.0',
+        };
+      } catch {
+        chartMetadata = null;
+      }
+    }
 
     const valuesKey = Object.keys(chartFiles).find(
       (e) => e.endsWith('values.yaml') || e.endsWith('values.yml'),
@@ -89,7 +151,9 @@
         files[entry.header.name] = decoder.decode(entry.data);
       }
 
-      validateHelmChart(files);
+      const normalFiles = normalizeChartPaths(files);
+
+      validateHelmChart(normalFiles);
     } catch (err: unknown) {
       toast.error((err as Error).message || 'Error while processing helm chart.');
       clearState();
@@ -106,7 +170,7 @@
     <YAMLEditor bind:value={editorContent} />
   </div>
   <section class="view-selector">
-    <h2>Teste</h2>
+    <YAMLEditor value={Object.values(renderedCharts).join('\n---\n')} readOnly />
   </section>
 </div>
 
