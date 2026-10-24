@@ -1,5 +1,6 @@
 <script lang="ts">
-  import { Upload } from 'lucide-svelte';
+  import { Bolt, Upload } from 'lucide-svelte';
+  import '@shoelace-style/shoelace/dist/components/input/input.js';
 
   import YAMLEditor from '#lib/components/YAMLEditor.svelte';
   import { toast } from 'svelte-sonner';
@@ -12,6 +13,9 @@
   const MAX_FILES_COUNT = 1000;
 
   let fileName = $state<string | null>(null);
+
+  let releaseName = $state<string>('');
+  let releaseNamespace = $state<string>('');
 
   let editorContent = $state<string>('');
   let chartFiles = $state<Record<string, string>>({});
@@ -170,8 +174,10 @@
 </script>
 
 <header class="header">
-  <img src="img/helm.png" alt="Helm Icon" id="icon" />
-  <h1>Helm Lab</h1>
+  <div class="icon-container">
+    <img src="img/helm.png" alt="Helm Icon" id="icon" />
+    <h1>Helm Lab</h1>
+  </div>
   <div class="upload-container">
     <input
       type="file"
@@ -184,6 +190,33 @@
       <Upload size={18} />
       <span>{fileName ? fileName : 'Upload Chart'}</span>
     </label>
+  </div>
+  <div class="other-inputs-container">
+    <sl-input
+      label="Release Name"
+      filled
+      placeholder="Release name..."
+      size="small"
+      class="sl-header-input"
+      value={releaseName}
+      oninput={(e: Event) => (releaseName = (e.target as HTMLInputElement).value)}
+    >
+    </sl-input>
+    <sl-input
+      label="Namespace"
+      filled
+      placeholder="Namespace..."
+      size="small"
+      class="sl-header-input"
+      value={releaseNamespace}
+      oninput={(e: Event) => (releaseNamespace = (e.target as HTMLInputElement).value)}
+    >
+    </sl-input>
+  </div>
+  <div class="settings-container">
+    <button class="settings">
+      <Bolt size="100%" />
+    </button>
   </div>
 </header>
 <div class="layout">
@@ -204,10 +237,12 @@
     --light-blue: #3dc4ca;
   }
   .header {
-    display: flex;
-    flex-direction: row;
-    height: 10vh;
+    display: grid;
+    height: 100px;
     align-items: center;
+    grid-template-columns: 1.33fr 0.5fr 1fr auto;
+    gap: 1.5rem;
+    padding: 0 1.5rem;
 
     background-color: var(--header-purple);
 
@@ -218,10 +253,18 @@
       color: var(--smooth-white);
     }
   }
+  .icon-container {
+    display: flex;
+  }
+  .other-inputs-container {
+    display: flex;
+    gap: 1rem;
+    width: 100%;
+  }
   #icon {
     object-fit: contain;
-    width: 10vh;
-    padding: px;
+    width: 72px;
+    padding-right: 15px;
   }
   .layout {
     display: flex;
@@ -236,7 +279,7 @@
     flex: 1;
   }
 
-  /* botão de upload */
+  /* upload hbutton */
   .hidden-input {
     display: none;
   }
@@ -246,8 +289,11 @@
     gap: 8px;
     background-color: var(--light-blue);
     padding: 10px 18px;
-    border-radius: 25px;
+    border-radius: 8px;
     user-select: none;
+
+    max-width: 250px;
+    overflow: hidden;
 
     font-family: 'Inter', 'arial', sans-serif;
     transition:
@@ -256,10 +302,66 @@
 
     &:hover {
       cursor: pointer;
+      background-color: color-mix(in srgb, var(--light-blue) 65%, white);
     }
 
     &:active {
       transform: scale(0.975);
     }
+
+    span {
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+  }
+
+  /* Other header inputs */
+  .sl-header-input {
+    flex: 1;
+
+    --sl-input-label-color: var(--light-blue);
+
+    &::part(base) {
+      background-color: rgba(0, 0, 0, 0.2);
+      border-color: rgba(255, 255, 255, 0.15);
+      border-radius: 8px;
+      transition: border-color 0.2s ease;
+    }
+
+    &::part(base):hover {
+      border-color: var(--light-blue);
+    }
+
+    &::part(base):focus-within {
+      border-color: var(--light-blue);
+      box-shadow: 0 0 0 2px rgba(61, 196, 202, 0.2);
+    }
+  }
+  .settings {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+
+    border-radius: 50%;
+    border: none;
+    background-color: transparent;
+    color: var(--smooth-white);
+
+    width: 45px;
+    height: 45px;
+
+    transition: background-color 0.15s ease;
+
+    &:hover {
+      cursor: pointer;
+      background-color: rgba(255, 255, 255, 0.05);
+    }
+  }
+  .settings-container {
+    display: flex;
+    justify-content: end;
+    height: 100%;
+    align-items: center;
   }
 </style>

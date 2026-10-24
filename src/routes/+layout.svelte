@@ -2,7 +2,9 @@
   import { Toaster } from 'svelte-sonner';
   import type { LayoutProps } from './$types';
   import '@shoelace-style/shoelace/dist/themes/dark.css';
-  import '@shoelace-style/shoelace/dist/components/input/input.js';
+  import { setBasePath } from '@shoelace-style/shoelace';
+
+  setBasePath('/assets/shoelace');
 
   let { children }: LayoutProps = $props();
 </script>
