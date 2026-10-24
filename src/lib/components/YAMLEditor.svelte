@@ -60,6 +60,7 @@
     overflow: hidden;
     text-align: left;
     font-family: 'Fira Code', 'JetBrains Mono', monospace;
+    max-width: 50vw;
   }
 
   .read-only:hover {
