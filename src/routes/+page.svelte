@@ -1,5 +1,5 @@
 <script lang="ts">
-  import { Bolt, Upload } from 'lucide-svelte';
+  import { Bug, Network, ScrollText } from 'lucide-svelte';
   import '@shoelace-style/shoelace/dist/components/input/input.js';
 
   import YAMLEditor from '#lib/components/YAMLEditor.svelte';
@@ -7,12 +7,15 @@
   import { gunzipSync } from 'fflate';
   import { unpackTar } from 'modern-tar';
   import { renderHelmTemplate } from '#lib';
+  import ApplicationHeader from '#lib/components/ApplicationHeader.svelte';
 
   const MAX_UPLOAD_SIZE = 50 * 1024 * 1024;
   const MAX_UNCOMPRESSED_SIZE = 100 * 1024 * 1024;
   const MAX_FILES_COUNT = 1000;
 
-  let fileName = $state<string | null>(null);
+  let activeSidebarTab = $state<'manifests' | 'graph' | 'vulnerabilities'>('manifests');
+
+  let fileName = $state<string>('');
 
   let releaseName = $state<string>('');
   let releaseNamespace = $state<string>('');
@@ -53,7 +56,7 @@
   function clearState() {
     chartFiles = {};
     chartMetadata = null;
-    fileName = null;
+    fileName = '';
   }
 
   function normalizeChartPaths(rawFiles: Record<string, string>): Record<string, string> {
@@ -173,59 +176,42 @@
   }
 </script>
 
-<header class="header">
-  <div class="icon-container">
-    <img src="img/helm.png" alt="Helm Icon" id="icon" />
-    <h1>Helm Lab</h1>
-  </div>
-  <div class="upload-container">
-    <input
-      type="file"
-      id="tar-upload"
-      class="hidden-input"
-      accept=".tar.gz,.tgz"
-      onchange={handleFileUpload}
-    />
-    <label for="tar-upload" class="upload-button">
-      <Upload size={18} />
-      <span>{fileName ? fileName : 'Upload Chart'}</span>
-    </label>
-  </div>
-  <div class="other-inputs-container">
-    <sl-input
-      label="Release Name"
-      filled
-      placeholder="Release name..."
-      size="small"
-      class="sl-header-input"
-      value={releaseName}
-      oninput={(e: Event) => (releaseName = (e.target as HTMLInputElement).value)}
-    >
-    </sl-input>
-    <sl-input
-      label="Namespace"
-      filled
-      placeholder="Namespace..."
-      size="small"
-      class="sl-header-input"
-      value={releaseNamespace}
-      oninput={(e: Event) => (releaseNamespace = (e.target as HTMLInputElement).value)}
-    >
-    </sl-input>
-  </div>
-  <div class="settings-container">
-    <button class="settings">
-      <Bolt size="100%" />
-    </button>
-  </div>
-</header>
+<ApplicationHeader
+  onChartUpload={handleFileUpload}
+  bind:fileName
+  bind:releaseName
+  bind:releaseNamespace
+/>
 <div class="layout">
   <div class="wrapper-editor">
     <YAMLEditor bind:value={editorContent} />
   </div>
-  <section class="view-selector">
+  <section class="result">
     <YAMLEditor value={Object.values(renderedCharts).join('\n---\n')} readOnly />
   </section>
+  <aside class="view-selector">
+    <button
+      id={activeSidebarTab === 'manifests' ? 'active' : ''}
+      onclick={() => (activeSidebarTab = 'manifests')}
+    >
+      <ScrollText size={30} style="opacity: 0.6;" />
+      <span class="sidebar-title">Manifests</span>
+    </button>
+    <button
+      id={activeSidebarTab === 'graph' ? 'active' : ''}
+      onclick={() => (activeSidebarTab = 'graph')}
+    >
+      <Network size={30} style="opacity: 0.6;" />
+      <span class="sidebar-title">Graph</span>
+    </button>
+    <button
+      id={activeSidebarTab === 'vulnerabilities' ? 'active' : ''}
+      onclick={() => (activeSidebarTab = 'vulnerabilities')}
+    >
+      <Bug size={30} style="opacity: 0.6;" />
+      <span class="sidebar-title">Vulns</span>
+    </button>
+  </aside>
 </div>
 
 <style>
@@ -235,36 +221,8 @@
     --header-purple: #23233f;
     --smooth-white: #f0eff6;
     --light-blue: #3dc4ca;
-  }
-  .header {
-    display: grid;
-    height: 100px;
-    align-items: center;
-    grid-template-columns: 1.33fr 0.5fr 1fr auto;
-    gap: 1.5rem;
-    padding: 0 1.5rem;
-
-    background-color: var(--header-purple);
-
-    h1 {
-      font-family: 'Noto Sans', sans-serif;
-      font-weight: bolder;
-      font-size: 24pt;
-      color: var(--smooth-white);
-    }
-  }
-  .icon-container {
-    display: flex;
-  }
-  .other-inputs-container {
-    display: flex;
-    gap: 1rem;
-    width: 100%;
-  }
-  #icon {
-    object-fit: contain;
-    width: 72px;
-    padding-right: 15px;
+    --smooth-dark: #1a1c29;
+    --light-blue-2: #6cb0b6;
   }
   .layout {
     display: flex;
@@ -275,93 +233,43 @@
   .wrapper-editor {
     flex: 1;
   }
+  .result {
+    flex: 1;
+  }
+
   .view-selector {
-    flex: 1;
-  }
-
-  /* upload hbutton */
-  .hidden-input {
-    display: none;
-  }
-  .upload-button {
-    display: inline-flex;
-    align-items: center;
-    gap: 8px;
-    background-color: var(--light-blue);
-    padding: 10px 18px;
-    border-radius: 8px;
-    user-select: none;
-
-    max-width: 250px;
-    overflow: hidden;
-
-    font-family: 'Inter', 'arial', sans-serif;
-    transition:
-      background-color 0.2s ease,
-      transform 0.1s ease;
-
-    &:hover {
-      cursor: pointer;
-      background-color: color-mix(in srgb, var(--light-blue) 65%, white);
-    }
-
-    &:active {
-      transform: scale(0.975);
-    }
-
-    span {
-      white-space: nowrap;
-      overflow: hidden;
-      text-overflow: ellipsis;
-    }
-  }
-
-  /* Other header inputs */
-  .sl-header-input {
-    flex: 1;
-
-    --sl-input-label-color: var(--light-blue);
-
-    &::part(base) {
-      background-color: rgba(0, 0, 0, 0.2);
-      border-color: rgba(255, 255, 255, 0.15);
-      border-radius: 8px;
-      transition: border-color 0.2s ease;
-    }
-
-    &::part(base):hover {
-      border-color: var(--light-blue);
-    }
-
-    &::part(base):focus-within {
-      border-color: var(--light-blue);
-      box-shadow: 0 0 0 2px rgba(61, 196, 202, 0.2);
-    }
-  }
-  .settings {
     display: flex;
-    align-items: center;
-    justify-content: center;
+    flex-direction: column;
 
-    border-radius: 50%;
-    border: none;
-    background-color: transparent;
-    color: var(--smooth-white);
+    background-color: var(--smooth-dark);
+    min-width: 110px;
 
-    width: 45px;
-    height: 45px;
+    button {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
 
-    transition: background-color 0.15s ease;
+      border: none;
+      background-color: transparent;
+      transition: background-color 0.3s ease;
 
-    &:hover {
-      cursor: pointer;
-      background-color: rgba(255, 255, 255, 0.05);
+      gap: 5px;
+      padding: 25px 20px;
+
+      &:hover {
+        cursor: pointer;
+        background-color: rgba(255, 255, 255, 0.1);
+      }
     }
   }
-  .settings-container {
-    display: flex;
-    justify-content: end;
-    height: 100%;
-    align-items: center;
+  .sidebar-title {
+    font-family: 'Inter', 'Arial', sans-serif;
+    font-weight: 350;
+    opacity: 0.7;
+  }
+
+  #active {
+    background-color: color-mix(in srgb, var(--smooth-dark) 92.5%, white);
+    border-left: 5px solid var(--light-blue-2);
   }
 </style>
