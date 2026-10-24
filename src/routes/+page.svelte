@@ -9,17 +9,11 @@
   const MAX_FILES_COUNT = 1000;
 
   let editorContent = $state<string>('');
-  let isValidHelmChart = $state<boolean>(false);
   let chartFiles = $state<Record<string, string>>({});
   let chartMetadata = $state<{ name: string; version: string } | null>(null);
 
-  $effect(() => {
-    console.log(chartFiles);
-  });
-
   function clearState() {
     chartFiles = {};
-    isValidHelmChart = false;
     chartMetadata = null;
   }
 
@@ -35,12 +29,10 @@
       toast.error(
         'The uploaded package is not a valid helm chart (Chart.yaml or values.yaml are absent)',
       );
-      isValidHelmChart = false;
       chartFiles = {};
       return;
     }
 
-    isValidHelmChart = true;
     chartFiles = files;
 
     const valuesKey = Object.keys(chartFiles).find(
