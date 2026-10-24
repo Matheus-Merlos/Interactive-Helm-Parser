@@ -17,6 +17,12 @@
 </div>
 
 <style>
+  * {
+    box-sizing: border-box;
+    padding: 0;
+    margin: 0;
+    border: 0;
+  }
   .app-shell {
     min-height: 100vh;
     background-color: var(--sl-color-neutral-950);

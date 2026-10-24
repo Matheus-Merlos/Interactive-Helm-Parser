@@ -1,4 +1,6 @@
 <script lang="ts">
+  import { Upload } from 'lucide-svelte';
+
   import YAMLEditor from '#lib/components/YAMLEditor.svelte';
   import { toast } from 'svelte-sonner';
   import { gunzipSync } from 'fflate';
@@ -8,6 +10,8 @@
   const MAX_UPLOAD_SIZE = 50 * 1024 * 1024;
   const MAX_UNCOMPRESSED_SIZE = 100 * 1024 * 1024;
   const MAX_FILES_COUNT = 1000;
+
+  let fileName = $state<string | null>(null);
 
   let editorContent = $state<string>('');
   let chartFiles = $state<Record<string, string>>({});
@@ -45,6 +49,7 @@
   function clearState() {
     chartFiles = {};
     chartMetadata = null;
+    fileName = null;
   }
 
   function normalizeChartPaths(rawFiles: Record<string, string>): Record<string, string> {
@@ -115,6 +120,8 @@
       return;
     }
 
+    fileName = targetFile.name;
+
     try {
       const arrayBuffer = await targetFile.arrayBuffer();
       const compressedBytes = new Uint8Array(arrayBuffer);
@@ -162,11 +169,25 @@
   }
 </script>
 
+<header class="header">
+  <img src="img/helm.png" alt="Helm Icon" id="icon" />
+  <h1>Helm Lab</h1>
+  <div class="upload-container">
+    <input
+      type="file"
+      id="tar-upload"
+      class="hidden-input"
+      accept=".tar.gz,.tgz"
+      onchange={handleFileUpload}
+    />
+    <label for="tar-upload" class="upload-button">
+      <Upload size={18} />
+      <span>{fileName ? fileName : 'Upload Chart'}</span>
+    </label>
+  </div>
+</header>
 <div class="layout">
   <div class="wrapper-editor">
-    <div>
-      <input type="file" accept=".tgz,.tar.gz" onchange={handleFileUpload} />
-    </div>
     <YAMLEditor bind:value={editorContent} />
   </div>
   <section class="view-selector">
@@ -175,6 +196,33 @@
 </div>
 
 <style>
+  @import url('https://fonts.googleapis.com/css2?family=Noto+Sans:ital,wght@0,100..900;1,100..900&display=swap');
+  @import url('https://fonts.googleapis.com/css2?family=Inter:ital,opsz,wght@0,14..32,100..900;1,14..32,100..900&display=swap');
+  :root {
+    --header-purple: #23233f;
+    --smooth-white: #f0eff6;
+    --light-blue: #3dc4ca;
+  }
+  .header {
+    display: flex;
+    flex-direction: row;
+    height: 10vh;
+    align-items: center;
+
+    background-color: var(--header-purple);
+
+    h1 {
+      font-family: 'Noto Sans', sans-serif;
+      font-weight: bolder;
+      font-size: 24pt;
+      color: var(--smooth-white);
+    }
+  }
+  #icon {
+    object-fit: contain;
+    width: 10vh;
+    padding: px;
+  }
   .layout {
     display: flex;
     flex-direction: row;
@@ -186,5 +234,32 @@
   }
   .view-selector {
     flex: 1;
+  }
+
+  /* botão de upload */
+  .hidden-input {
+    display: none;
+  }
+  .upload-button {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    background-color: var(--light-blue);
+    padding: 10px 18px;
+    border-radius: 25px;
+    user-select: none;
+
+    font-family: 'Inter', 'arial', sans-serif;
+    transition:
+      background-color 0.2s ease,
+      transform 0.1s ease;
+
+    &:hover {
+      cursor: pointer;
+    }
+
+    &:active {
+      transform: scale(0.975);
+    }
   }
 </style>
