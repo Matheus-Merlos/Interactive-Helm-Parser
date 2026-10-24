@@ -26,7 +26,10 @@
     border: 0;
   }
   .app-shell {
-    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+
+    height: 100vh;
     background-color: var(--sl-color-neutral-950);
     color: var(--sl-color-neutral-50);
     font-family: var(--sl-font-sans);

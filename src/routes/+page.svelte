@@ -1,5 +1,5 @@
 <script lang="ts">
-  import { Bug, Network, ScrollText } from 'lucide-svelte';
+  import { Bug, FileText, Network, ScrollText } from 'lucide-svelte';
   import '@shoelace-style/shoelace/dist/components/input/input.js';
 
   import YAMLEditor from '#lib/components/YAMLEditor.svelte';
@@ -182,13 +182,21 @@
   bind:releaseName
   bind:releaseNamespace
 />
-<div class="layout">
+<main class="layout">
   <div class="wrapper-editor">
+    <div class="editor-header">
+      <FileText size={37.5} strokeWidth={1.1} />
+      <h2>Values</h2>
+    </div>
     <YAMLEditor bind:value={editorContent} />
   </div>
-  <section class="result">
-    <YAMLEditor value={Object.values(renderedCharts).join('\n---\n')} readOnly />
-  </section>
+  <div class="view-container">
+    {#if activeSidebarTab === 'manifests'}
+      <section class="result">
+        <YAMLEditor value={Object.values(renderedCharts).join('\n---\n')} readOnly />
+      </section>
+    {/if}
+  </div>
   <aside class="view-selector">
     <button
       id={activeSidebarTab === 'manifests' ? 'active' : ''}
@@ -212,7 +220,7 @@
       <span class="sidebar-title">Vulns</span>
     </button>
   </aside>
-</div>
+</main>
 
 <style>
   @import url('https://fonts.googleapis.com/css2?family=Noto+Sans:ital,wght@0,100..900;1,100..900&display=swap');
@@ -223,18 +231,55 @@
     --light-blue: #3dc4ca;
     --smooth-dark: #1a1c29;
     --light-blue-2: #6cb0b6;
+
+    --background-color: #131521;
+    --editor-header-background: #212735;
   }
   .layout {
     display: flex;
     flex-direction: row;
+    justify-content: space-between;
     gap: 1rem;
     height: 80vh;
+
+    background-color: var(--background-color);
+
+    flex: 1;
+    overflow: auto;
   }
   .wrapper-editor {
     flex: 1;
+
+    max-width: 40%;
+    max-height: 80%;
+    overflow: scroll;
+
+    border-radius: 12.5px;
   }
-  .result {
+  .view-container {
     flex: 1;
+
+    max-width: 40%;
+    max-height: 80%;
+    overflow: scroll;
+  }
+
+  .editor-header {
+    background-color: var(--editor-header-background);
+
+    display: flex;
+    flex-direction: row;
+    align-items: center;
+    gap: 10px;
+    padding: 2.5px 25px;
+
+    color: var(--smooth-white);
+
+    h2 {
+      font-family: 'Inter', 'Arial', sans-serif;
+      font-weight: 600;
+      font-size: 16pt;
+    }
   }
 
   .view-selector {

@@ -72,6 +72,8 @@
     gap: 1.5rem;
     padding: 0 1.5rem;
 
+    flex-shrink: 0;
+
     background-color: var(--header-purple);
 
     h1 {
