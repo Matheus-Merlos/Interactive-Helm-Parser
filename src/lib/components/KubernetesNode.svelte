@@ -1,6 +1,18 @@
 <script lang="ts">
   import { Handle, Position, type Node, type NodeProps } from '@xyflow/svelte';
-  import { Box, Layers, UserRoundCog, type Icon as LucideIcon } from 'lucide-svelte';
+  import {
+    Box,
+    Component,
+    FileCheck,
+    Key,
+    Layers,
+    Puzzle,
+    ServerCog,
+    ShieldCheck,
+    UserRoundCog,
+    Wand,
+    type Icon as LucideIcon,
+  } from 'lucide-svelte';
 
   type KubernetesNodeType = Node<
     {
@@ -15,6 +27,13 @@
   const iconMap: Record<string, typeof LucideIcon> = {
     Chart: Layers,
     ServiceAccount: UserRoundCog,
+    CustomResourceDefinition: Puzzle,
+    ClusterRole: ShieldCheck,
+    Role: Key,
+    MutatingWebhookConfiguration: Wand,
+    ValidatingWebhookConfiguration: FileCheck,
+    StorageClass: ServerCog,
+    IngressClass: Component,
   };
 
   const Icon = $derived(iconMap[data.kind] ?? Box);

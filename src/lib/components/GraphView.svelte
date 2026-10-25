@@ -26,19 +26,145 @@
   let edges = $state<Array<Edge>>([]);
 
   onMount(() => {
-    manifests.forEach((manifest) => {
+    manifests.forEach((manifest, index) => {
       switch (manifest.kind) {
         case 'ServiceAccount': {
           nodes.push({
-            id: 'service-account',
+            id: `sa-${index}`,
             type: 'kubernetes',
             position: { x: 150, y: 20 },
-            data: { name: manifest.metadata.name, kind: 'ServiceAccount' },
+            data: { name: manifest.metadata.name, kind: manifest.kind },
           });
           edges.push({
-            id: 'service-account-chart-edge',
+            id: `sa-${index}-edge`,
             source: 'chart-root',
-            target: 'service-account',
+            target: `sa-${index}`,
+            type: 'step',
+            animated: true,
+            style: 'stroke: #3dc4ca; stroke-width: 2px;',
+          });
+          break;
+        }
+
+        case 'CustomResourceDefinition': {
+          nodes.push({
+            id: `crd-${index}`,
+            type: 'kubernetes',
+            position: { x: 150, y: 20 },
+            data: { name: manifest.metadata.name, kind: manifest.kind },
+          });
+          edges.push({
+            id: `crd-${index}-edge`,
+            source: 'chart-root',
+            target: `crd-${index}`,
+            type: 'step',
+            animated: true,
+            style: 'stroke: #3dc4ca; stroke-width: 2px;',
+          });
+          break;
+        }
+
+        case 'ClusterRole': {
+          nodes.push({
+            id: `cr-${index}`,
+            type: 'kubernetes',
+            position: { x: 150, y: 20 },
+            data: { name: manifest.metadata.name, kind: manifest.kind },
+          });
+          edges.push({
+            id: `cr-${index}-edge`,
+            source: 'chart-root',
+            target: `cr-${index}`,
+            type: 'step',
+            animated: true,
+            style: 'stroke: #3dc4ca; stroke-width: 2px;',
+          });
+          break;
+        }
+
+        case 'Role': {
+          nodes.push({
+            id: `role-${index}`,
+            type: 'kubernetes',
+            position: { x: 150, y: 20 },
+            data: { name: manifest.metadata.name, kind: manifest.kind },
+          });
+          edges.push({
+            id: `role-${index}-edge`,
+            source: 'chart-root',
+            target: `role-${index}`,
+            type: 'step',
+            animated: true,
+            style: 'stroke: #3dc4ca; stroke-width: 2px;',
+          });
+          break;
+        }
+
+        case 'MutatingWebhookConfiguration': {
+          nodes.push({
+            id: `mwc-${index}`,
+            type: 'kubernetes',
+            position: { x: 150, y: 20 },
+            data: { name: manifest.metadata.name, kind: manifest.kind },
+          });
+          edges.push({
+            id: `mwc-${index}-edge`,
+            source: 'chart-root',
+            target: `mwc-${index}`,
+            type: 'step',
+            animated: true,
+            style: 'stroke: #3dc4ca; stroke-width: 2px;',
+          });
+          break;
+        }
+
+        case 'ValidatingWebhookConfiguration': {
+          nodes.push({
+            id: `vwc-${index}`,
+            type: 'kubernetes',
+            position: { x: 150, y: 20 },
+            data: { name: manifest.metadata.name, kind: manifest.kind },
+          });
+          edges.push({
+            id: `vwc-${index}-edge`,
+            source: 'chart-root',
+            target: `vwc-${index}`,
+            type: 'step',
+            animated: true,
+            style: 'stroke: #3dc4ca; stroke-width: 2px;',
+          });
+          break;
+        }
+
+        case 'StorageClass': {
+          nodes.push({
+            id: `sc-${index}`,
+            type: 'kubernetes',
+            position: { x: 150, y: 20 },
+            data: { name: manifest.metadata.name, kind: manifest.kind },
+          });
+          edges.push({
+            id: `sc-${index}-edge`,
+            source: 'chart-root',
+            target: `sc-${index}`,
+            type: 'step',
+            animated: true,
+            style: 'stroke: #3dc4ca; stroke-width: 2px;',
+          });
+          break;
+        }
+
+        case 'IngressClass': {
+          nodes.push({
+            id: `ic-${index}`,
+            type: 'kubernetes',
+            position: { x: 150, y: 20 },
+            data: { name: manifest.metadata.name, kind: manifest.kind },
+          });
+          edges.push({
+            id: `ic-${index}-edge`,
+            source: 'chart-root',
+            target: `ic-${index}`,
             type: 'step',
             animated: true,
             style: 'stroke: #3dc4ca; stroke-width: 2px;',
