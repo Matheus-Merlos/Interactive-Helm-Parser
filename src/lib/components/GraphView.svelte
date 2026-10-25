@@ -1,9 +1,11 @@
 <script lang="ts">
+  /* eslint-disable @typescript-eslint/no-explicit-any */
   import { Background, SvelteFlow, type Edge, type Node, Position } from '@xyflow/svelte';
   import '@xyflow/svelte/dist/style.css';
   import type { KubernetesManifest } from '#lib/types.ts';
   import KubernetesNode from './KubernetesNode.svelte';
   import dagre from '@dagrejs/dagre';
+  import { SvelteMap } from 'svelte/reactivity';
 
   const nodeTypes = {
     kubernetes: KubernetesNode,
@@ -28,8 +30,8 @@
 
     dagreGraph.setGraph({
       rankdir: direction,
-      nodesep: 50,
-      ranksep: 120,
+      nodesep: 90,
+      ranksep: 240,
       marginx: 40,
       marginy: 40,
     });
@@ -75,8 +77,10 @@
 
     const newEdges: Edge[] = [];
 
+    const serviceAccountMap = new SvelteMap<string, string>();
+
     manifests.forEach((manifest, index) => {
-      const kinds = [
+      const firstOrderKinds = [
         'ServiceAccount',
         'CustomResourceDefinition',
         'ClusterRole',
@@ -87,8 +91,16 @@
         'IngressClass',
       ];
 
-      if (kinds.includes(manifest.kind)) {
-        const id = `${manifest.kind.toLowerCase()}-${index}`;
+      manifests.forEach((manifest, index) => {
+        if (manifest.kind === 'ServiceAccount') {
+          const id = `${manifest.kind.toLowerCase()}-${index}`;
+          serviceAccountMap.set(manifest.metadata.name, id);
+        }
+      });
+
+      const id = `${manifest.kind.toLowerCase()}-${index}`;
+
+      if (firstOrderKinds.includes(manifest.kind)) {
         newNodes.push({
           id,
           type: 'kubernetes',
@@ -106,6 +118,82 @@
           animated: true,
           style: 'stroke: #3dc4ca; stroke-width: 2px;',
         });
+      } else {
+        switch (manifest.kind) {
+          case 'StatefulSet':
+          case 'DaemonSet':
+          case 'Deployment': {
+            newNodes.push({
+              id,
+              type: 'kubernetes',
+              width: NODE_WIDTH,
+              height: NODE_HEIGHT,
+              position: { x: 0, y: 0 },
+              data: { name: manifest.metadata.name, kind: manifest.kind },
+            });
+
+            const spec = (manifest as any).spec;
+
+            //Service account parsing
+            const saName = spec?.template?.spec?.serviceAccountName;
+
+            if (saName && serviceAccountMap.has(saName)) {
+              const saId = serviceAccountMap.get(saName)!;
+              newEdges.push({
+                id: `edge-${saId}-${id}`,
+                source: saId,
+                target: id,
+                type: 'step',
+                animated: true,
+                style: 'stroke: #3dc4ca; stroke-width: 2px;',
+              });
+            }
+
+            //Container parsing
+            const allContainers = [
+              ...(spec?.template?.spec?.initContainers ?? []).map((c: any) => ({
+                name: c?.name,
+                kind: 'InitContainer',
+              })),
+              ...(spec?.template?.spec?.containers ?? []).map((c: any) => ({
+                name: c?.name,
+                kind: 'Container',
+              })),
+            ];
+
+            allContainers.forEach(({ name, kind }) => {
+              if (!name) return;
+              const containerId = `${name}-${id}`;
+              newNodes.push({
+                id: containerId,
+                type: 'kubernetes',
+                width: NODE_WIDTH,
+                height: NODE_HEIGHT,
+                position: { x: 0, y: 0 },
+                data: { name, kind },
+              });
+              newEdges.push({
+                id: `${containerId}-edge`,
+                source: id,
+                target: containerId,
+                type: 'step',
+                animated: true,
+                style: 'stroke: #3dc4ca; stroke-width: 2px;',
+              });
+            });
+
+            newEdges.push({
+              id: `edge-root-${id}`,
+              source: 'chart-root',
+              target: id,
+              type: 'step',
+              animated: true,
+              style: 'stroke: #3dc4ca; stroke-width: 2px;',
+            });
+
+            break;
+          }
+        }
       }
     });
 
@@ -117,7 +205,7 @@
 
 <div class="graph-container">
   <SvelteFlow bind:nodes bind:edges {nodeTypes} fitView proOptions={{ hideAttribution: true }}>
-    <Background gap={20} size={1} bgColor="#414868" />
+    <Background gap={20} size={1} bgColor="#1a1c29" />
   </SvelteFlow>
 </div>
 
@@ -133,5 +221,12 @@
   .graph-container :global(.svelte-flow) {
     width: 100% !important;
     height: 100% !important;
+  }
+
+  .graph-container :global(.svelte-flow__nodes) {
+    z-index: 2;
+  }
+  .graph-container :global(.svelte-flow__edges) {
+    z-index: 1;
   }
 </style>

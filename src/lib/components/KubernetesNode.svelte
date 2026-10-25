@@ -2,7 +2,11 @@
   import { Handle, Position, type Node } from '@xyflow/svelte';
   import {
     Box,
+    Boxes,
     Component,
+    Cpu,
+    Cuboid,
+    DatabaseZap,
     FileCheck,
     Key,
     Layers,
@@ -25,6 +29,7 @@
   let { data }: { data: KubernetesNodeType['data'] } = $props();
 
   const iconMap: Record<string, typeof LucideIcon> = {
+    //Fierst order
     Chart: Layers,
     ServiceAccount: UserRoundCog,
     CustomResourceDefinition: Puzzle,
@@ -34,6 +39,13 @@
     ValidatingWebhookConfiguration: FileCheck,
     StorageClass: ServerCog,
     IngressClass: Component,
+
+    //Second order
+    Deployment: Boxes,
+    StatefulSet: DatabaseZap,
+    DaemonSet: Cpu,
+    Container: Cuboid,
+    InitContainer: Box,
   };
 
   const Icon = $derived(iconMap[data.kind] ?? Box);
@@ -46,6 +58,7 @@
     <div class="icon">
       <Icon size={20} strokeWidth={1.2} />
     </div>
+    <p class="kind-name">{data.kind}:</p>
     <div class="info">
       <div class="name" title={data.name}>{data.name}</div>
     </div>
@@ -61,10 +74,11 @@
     border: 1px solid var(--light-blue, #3dc4ca);
     border-radius: 8px;
     padding: 8px 12px;
-    width: 260px;
+    max-width: 500px;
+    width: fit-content;
     height: 56px;
     box-sizing: border-box;
-    color: var(--smooth-white, #f0eff6);
+    color: var(--smooth-white);
     font-family: 'Inter', sans-serif;
     display: flex;
     align-items: center;
@@ -79,7 +93,7 @@
     display: flex;
     align-items: center;
     gap: 10px;
-    width: 100%;
+    width: auto;
     overflow: hidden;
   }
 
@@ -91,6 +105,20 @@
     border-radius: 6px;
     padding: 6px;
     flex-shrink: 0;
+  }
+
+  .kind-name {
+    font-size: 11pt;
+    color: var(--smooth-white);
+    white-space: nowrap;
+    flex-shrink: 0;
+    padding-right: 5px;
+  }
+
+  .info {
+    flex: 1;
+    min-width: 0;
+    overflow: hidden;
   }
 
   .name {
