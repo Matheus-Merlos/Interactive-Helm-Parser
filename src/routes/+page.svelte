@@ -8,6 +8,9 @@
   import { unpackTar } from 'modern-tar';
   import { renderHelmTemplate } from '#lib';
   import ApplicationHeader from '#lib/components/ApplicationHeader.svelte';
+  import GraphView from '#lib/components/GraphView.svelte';
+  import type { KubernetesManifest } from '#lib/types.ts';
+  import * as yaml from 'js-yaml';
 
   const MAX_UPLOAD_SIZE = 50 * 1024 * 1024;
   const MAX_UNCOMPRESSED_SIZE = 100 * 1024 * 1024;
@@ -72,6 +75,17 @@
     chartFiles = {};
     chartMetadata = null;
     fileName = '';
+  }
+
+  function parseManifests(yamlString: string): Array<KubernetesManifest> {
+    if (!yamlString || yamlString.trim() === '') return [];
+
+    const docs = yaml.loadAll(yamlString) as Array<KubernetesManifest | null | undefined>;
+
+    return docs.filter(
+      (doc): doc is KubernetesManifest =>
+        doc != null && typeof doc === 'object' && 'kind' in doc && 'metadata' in doc,
+    );
   }
 
   function normalizeChartPaths(rawFiles: Record<string, string>): Record<string, string> {
@@ -225,6 +239,26 @@
             >Download Manifests</button
           >
         </div>
+      {:else if activeSidebarTab === 'graph'}
+        <div class="graph-container">
+          <div class="editor-header">
+            <Network size={40} strokeWidth={1.4} />
+            <h2>Graph View</h2>
+          </div>
+          <div class="graph-content">
+            <GraphView
+              bind:releaseName
+              manifests={parseManifests(Object.values(renderedCharts).join('\n---\n'))}
+            />
+          </div>
+          <div class="editor-footer">
+            <button
+              onclick={() =>
+                downloadFile(Object.values(renderedCharts).join('\n---\n'), 'manifests.yaml')}
+              >Download Manifests</button
+            >
+          </div>
+        </div>
       {/if}
     </div>
   </div>
@@ -323,6 +357,21 @@
       font-weight: 600;
       font-size: 16pt;
     }
+  }
+
+  .graph-container {
+    flex: 1;
+    min-height: 0;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+  }
+
+  .graph-content {
+    flex: 1;
+    min-height: 0;
+    display: flex;
+    overflow: hidden;
   }
 
   .editor-footer {
