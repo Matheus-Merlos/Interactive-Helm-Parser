@@ -30,10 +30,10 @@
 
     dagreGraph.setGraph({
       rankdir: direction,
-      nodesep: 90,
-      ranksep: 240,
-      marginx: 40,
-      marginy: 40,
+      nodesep: 70,
+      ranksep: 320,
+      align: 'UL',
+      ranker: 'network-simplex',
     });
 
     nodes.forEach((node) => {
@@ -68,6 +68,7 @@
       {
         id: 'chart-root',
         type: 'kubernetes',
+        zIndex: 10,
         width: NODE_WIDTH,
         height: NODE_HEIGHT,
         position: { x: 0, y: 0 },
@@ -78,6 +79,26 @@
     const newEdges: Edge[] = [];
 
     const serviceAccountMap = new SvelteMap<string, string>();
+    const clusterRoleMap = new SvelteMap<string, string>();
+    const roleMap = new SvelteMap<string, string>();
+
+    manifests.forEach((manifest, index) => {
+      const id = `${manifest.kind.toLowerCase()}-${index}`;
+      switch (manifest.kind) {
+        case 'ServiceAccount': {
+          serviceAccountMap.set(manifest.metadata.name, id);
+          break;
+        }
+        case 'ClusterRole': {
+          clusterRoleMap.set(manifest.metadata.name, id);
+          break;
+        }
+        case 'Role': {
+          roleMap.set(manifest.metadata.name, id);
+          break;
+        }
+      }
+    });
 
     manifests.forEach((manifest, index) => {
       const firstOrderKinds = [
@@ -91,19 +112,13 @@
         'IngressClass',
       ];
 
-      manifests.forEach((manifest, index) => {
-        if (manifest.kind === 'ServiceAccount') {
-          const id = `${manifest.kind.toLowerCase()}-${index}`;
-          serviceAccountMap.set(manifest.metadata.name, id);
-        }
-      });
-
       const id = `${manifest.kind.toLowerCase()}-${index}`;
 
       if (firstOrderKinds.includes(manifest.kind)) {
         newNodes.push({
           id,
           type: 'kubernetes',
+          zIndex: 10,
           width: NODE_WIDTH,
           height: NODE_HEIGHT,
           position: { x: 0, y: 0 },
@@ -126,6 +141,7 @@
             newNodes.push({
               id,
               type: 'kubernetes',
+              zIndex: 10,
               width: NODE_WIDTH,
               height: NODE_HEIGHT,
               position: { x: 0, y: 0 },
@@ -167,6 +183,7 @@
               newNodes.push({
                 id: containerId,
                 type: 'kubernetes',
+                zIndex: 10,
                 width: NODE_WIDTH,
                 height: NODE_HEIGHT,
                 position: { x: 0, y: 0 },
@@ -189,6 +206,65 @@
               type: 'step',
               animated: true,
               style: 'stroke: #3dc4ca; stroke-width: 2px;',
+            });
+
+            break;
+          }
+
+          case 'RoleBinding':
+          case 'ClusterRoleBinding': {
+            newNodes.push({
+              id,
+              type: 'kubernetes',
+              width: NODE_WIDTH,
+              height: NODE_HEIGHT,
+              zIndex: 10,
+              position: { x: 0, y: 0 },
+              data: { name: manifest.metadata.name, kind: manifest.kind },
+            });
+
+            const rbac = manifest as any;
+
+            const roleRefName = rbac.roleRef?.name;
+            const roleRefKind = rbac.roleRef?.kind;
+            if (roleRefName) {
+              let targetRoleId: string | undefined;
+
+              if (roleRefKind === 'ClusterRole') {
+                targetRoleId = clusterRoleMap.get(roleRefName);
+              } else {
+                targetRoleId = roleMap.get(roleRefName);
+              }
+
+              if (targetRoleId) {
+                newEdges.push({
+                  id: `edge-${targetRoleId}-${id}`,
+                  source: targetRoleId,
+                  target: id,
+                  type: 'smoothstep',
+                  animated: true,
+                  style: 'stroke: #3dc4ca; stroke-width: 2px;',
+                });
+              }
+            }
+
+            const subjects = rbac.subjects ?? [];
+
+            subjects.forEach((subject: any) => {
+              if (subject.kind === 'ServiceAccount') {
+                const saName = subject.name;
+                if (serviceAccountMap.has(saName)) {
+                  const saId = serviceAccountMap.get(saName)!;
+                  newEdges.push({
+                    id: `edge-${saId}-${id}`,
+                    source: saId,
+                    target: id,
+                    type: 'smoothstep',
+                    animated: true,
+                    style: 'stroke: #3dc4ca; stroke-width: 2px;',
+                  });
+                }
+              }
             });
 
             break;
@@ -221,12 +297,5 @@
   .graph-container :global(.svelte-flow) {
     width: 100% !important;
     height: 100% !important;
-  }
-
-  .graph-container :global(.svelte-flow__nodes) {
-    z-index: 2;
-  }
-  .graph-container :global(.svelte-flow__edges) {
-    z-index: 1;
   }
 </style>
