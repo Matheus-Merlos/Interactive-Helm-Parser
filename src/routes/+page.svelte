@@ -83,6 +83,8 @@
     const prefix = slash > 0 ? first.slice(0, slash + 1) : '';
 
     for (const [path, content] of Object.entries(rawFiles)) {
+      if (path.endsWith('NOTES.txt') || path.endsWith('.helmignore') || path.endsWith('.git'))
+        continue;
       const cleanPath = prefix && path.startsWith(prefix) ? path.slice(prefix.length) : path;
       normalized[cleanPath] = content;
     }
