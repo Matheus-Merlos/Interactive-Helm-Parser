@@ -1,5 +1,5 @@
 <script lang="ts">
-  import { Bug, FileText, Key, Network, ScrollText } from 'lucide-svelte';
+  import { Bug, FileText, Network, ScrollText } from 'lucide-svelte';
   import '@shoelace-style/shoelace/dist/components/input/input.js';
 
   import YAMLEditor from '#lib/components/YAMLEditor.svelte';
