@@ -1,5 +1,5 @@
 <script lang="ts">
-  import { Bug, FileText, Key, Network, ScrollText } from 'lucide-svelte';
+  import { Bug, FileText, Network, ScrollText } from 'lucide-svelte';
   import '@shoelace-style/shoelace/dist/components/input/input.js';
 
   import YAMLEditor from '#lib/components/YAMLEditor.svelte';
@@ -53,6 +53,21 @@
       });
   });
 
+  function downloadFile(content: string, fileName: string) {
+    const blob = new Blob([content], { type: 'text/yaml;chartset=utf-8' });
+    const url = URL.createObjectURL(blob);
+
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = fileName;
+
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+
+    URL.revokeObjectURL(url);
+  }
+
   function clearState() {
     chartFiles = {};
     chartMetadata = null;
@@ -68,6 +83,8 @@
     const prefix = slash > 0 ? first.slice(0, slash + 1) : '';
 
     for (const [path, content] of Object.entries(rawFiles)) {
+      if (path.endsWith('NOTES.txt') || path.endsWith('.helmignore') || path.endsWith('.git'))
+        continue;
       const cleanPath = prefix && path.startsWith(prefix) ? path.slice(prefix.length) : path;
       normalized[cleanPath] = content;
     }
@@ -190,6 +207,9 @@
         <h2>Values</h2>
       </div>
       <YAMLEditor bind:value={editorContent} />
+      <div class="editor-footer">
+        <button onclick={() => downloadFile(editorContent, 'values.yaml')}>Download Values</button>
+      </div>
     </div>
     <div class="text-container">
       {#if activeSidebarTab === 'manifests'}
@@ -198,6 +218,13 @@
           <h2>Rendered Manifests</h2>
         </div>
         <YAMLEditor value={Object.values(renderedCharts).join('\n---\n')} readOnly />
+        <div class="editor-footer">
+          <button
+            onclick={() =>
+              downloadFile(Object.values(renderedCharts).join('\n---\n'), 'manifests.yaml')}
+            >Download Manifests</button
+          >
+        </div>
       {/if}
     </div>
   </div>
@@ -267,7 +294,7 @@
     flex: 1;
     min-width: 0;
     max-width: 50%;
-    height: 75vh;
+    height: 80vh;
     display: flex;
     flex-direction: column;
     min-height: 0;
@@ -295,6 +322,48 @@
       font-family: 'Inter', 'Arial', sans-serif;
       font-weight: 600;
       font-size: 16pt;
+    }
+  }
+
+  .editor-footer {
+    background-color: var(--editor-header-background);
+    padding: 15px 25px;
+
+    position: sticky;
+    top: 0;
+    z-index: 10;
+
+    button {
+      font-family: 'Inter', 'Arial', sans-serif;
+      font-weight: 350;
+      font-size: 14pt;
+
+      color: white;
+
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      background-color: var(--light-blue-2);
+      padding: 10px 18px;
+      border-radius: 8px;
+      user-select: none;
+
+      max-width: 250px;
+      overflow: hidden;
+
+      font-family: 'Inter', 'arial', sans-serif;
+      transition:
+        background-color 0.2s ease,
+        transform 0.1s ease;
+
+      &:hover {
+        cursor: pointer;
+        background-color: color-mix(in srgb, var(--light-blue) 65%, white);
+      }
+
+      &:active {
+        transform: scale(0.975);
+      }
     }
   }
 
