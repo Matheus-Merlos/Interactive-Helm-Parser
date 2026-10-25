@@ -1,8 +1,9 @@
 <script lang="ts">
-  import { Background, SvelteFlow, type Edge, type Node } from '@xyflow/svelte';
+  import { Background, SvelteFlow, type Edge, type Node, Position } from '@xyflow/svelte';
+  import '@xyflow/svelte/dist/style.css';
   import type { KubernetesManifest } from '#lib/types.ts';
-  import { onMount } from 'svelte';
   import KubernetesNode from './KubernetesNode.svelte';
+  import dagre from '@dagrejs/dagre';
 
   const nodeTypes = {
     kubernetes: KubernetesNode,
@@ -15,176 +16,107 @@
 
   const { releaseName = $bindable(''), manifests }: Props = $props();
 
-  let nodes = $state<Array<Node>>([
-    {
-      id: 'chart-root',
-      type: 'kubernetes',
-      position: { x: 0, y: 20 },
-      data: { name: releaseName ? releaseName : 'release-name', kind: 'Chart' },
-    },
-  ]);
+  let nodes = $state<Array<Node>>([]);
   let edges = $state<Array<Edge>>([]);
 
-  onMount(() => {
+  const NODE_WIDTH = 260;
+  const NODE_HEIGHT = 56;
+
+  function getLayoutedElements(nodes: Node[], edges: Edge[], direction = 'LR') {
+    const dagreGraph = new dagre.graphlib.Graph();
+    dagreGraph.setDefaultEdgeLabel(() => ({}));
+
+    dagreGraph.setGraph({
+      rankdir: direction,
+      nodesep: 50,
+      ranksep: 120,
+      marginx: 40,
+      marginy: 40,
+    });
+
+    nodes.forEach((node) => {
+      dagreGraph.setNode(node.id, { width: NODE_WIDTH, height: NODE_HEIGHT });
+    });
+
+    edges.forEach((edge) => {
+      dagreGraph.setEdge(edge.source, edge.target);
+    });
+
+    dagre.layout(dagreGraph);
+
+    const layoutedNodes = nodes.map((node) => {
+      const nodeWithPosition = dagreGraph.node(node.id);
+
+      return {
+        ...node,
+        targetPosition: Position.Left,
+        sourcePosition: Position.Right,
+        position: {
+          x: nodeWithPosition.x - NODE_WIDTH / 2,
+          y: nodeWithPosition.y - NODE_HEIGHT / 2,
+        },
+      };
+    });
+
+    return { nodes: layoutedNodes, edges };
+  }
+
+  $effect(() => {
+    const newNodes: Node[] = [
+      {
+        id: 'chart-root',
+        type: 'kubernetes',
+        width: NODE_WIDTH,
+        height: NODE_HEIGHT,
+        position: { x: 0, y: 0 },
+        data: { name: releaseName || 'release-name', kind: 'Chart' },
+      },
+    ];
+
+    const newEdges: Edge[] = [];
+
     manifests.forEach((manifest, index) => {
-      switch (manifest.kind) {
-        case 'ServiceAccount': {
-          nodes.push({
-            id: `sa-${index}`,
-            type: 'kubernetes',
-            position: { x: 150, y: 20 },
-            data: { name: manifest.metadata.name, kind: manifest.kind },
-          });
-          edges.push({
-            id: `sa-${index}-edge`,
-            source: 'chart-root',
-            target: `sa-${index}`,
-            type: 'step',
-            animated: true,
-            style: 'stroke: #3dc4ca; stroke-width: 2px;',
-          });
-          break;
-        }
+      const kinds = [
+        'ServiceAccount',
+        'CustomResourceDefinition',
+        'ClusterRole',
+        'Role',
+        'MutatingWebhookConfiguration',
+        'ValidatingWebhookConfiguration',
+        'StorageClass',
+        'IngressClass',
+      ];
 
-        case 'CustomResourceDefinition': {
-          nodes.push({
-            id: `crd-${index}`,
-            type: 'kubernetes',
-            position: { x: 150, y: 20 },
-            data: { name: manifest.metadata.name, kind: manifest.kind },
-          });
-          edges.push({
-            id: `crd-${index}-edge`,
-            source: 'chart-root',
-            target: `crd-${index}`,
-            type: 'step',
-            animated: true,
-            style: 'stroke: #3dc4ca; stroke-width: 2px;',
-          });
-          break;
-        }
+      if (kinds.includes(manifest.kind)) {
+        const id = `${manifest.kind.toLowerCase()}-${index}`;
+        newNodes.push({
+          id,
+          type: 'kubernetes',
+          width: NODE_WIDTH,
+          height: NODE_HEIGHT,
+          position: { x: 0, y: 0 },
+          data: { name: manifest.metadata.name, kind: manifest.kind },
+        });
 
-        case 'ClusterRole': {
-          nodes.push({
-            id: `cr-${index}`,
-            type: 'kubernetes',
-            position: { x: 150, y: 20 },
-            data: { name: manifest.metadata.name, kind: manifest.kind },
-          });
-          edges.push({
-            id: `cr-${index}-edge`,
-            source: 'chart-root',
-            target: `cr-${index}`,
-            type: 'step',
-            animated: true,
-            style: 'stroke: #3dc4ca; stroke-width: 2px;',
-          });
-          break;
-        }
-
-        case 'Role': {
-          nodes.push({
-            id: `role-${index}`,
-            type: 'kubernetes',
-            position: { x: 150, y: 20 },
-            data: { name: manifest.metadata.name, kind: manifest.kind },
-          });
-          edges.push({
-            id: `role-${index}-edge`,
-            source: 'chart-root',
-            target: `role-${index}`,
-            type: 'step',
-            animated: true,
-            style: 'stroke: #3dc4ca; stroke-width: 2px;',
-          });
-          break;
-        }
-
-        case 'MutatingWebhookConfiguration': {
-          nodes.push({
-            id: `mwc-${index}`,
-            type: 'kubernetes',
-            position: { x: 150, y: 20 },
-            data: { name: manifest.metadata.name, kind: manifest.kind },
-          });
-          edges.push({
-            id: `mwc-${index}-edge`,
-            source: 'chart-root',
-            target: `mwc-${index}`,
-            type: 'step',
-            animated: true,
-            style: 'stroke: #3dc4ca; stroke-width: 2px;',
-          });
-          break;
-        }
-
-        case 'ValidatingWebhookConfiguration': {
-          nodes.push({
-            id: `vwc-${index}`,
-            type: 'kubernetes',
-            position: { x: 150, y: 20 },
-            data: { name: manifest.metadata.name, kind: manifest.kind },
-          });
-          edges.push({
-            id: `vwc-${index}-edge`,
-            source: 'chart-root',
-            target: `vwc-${index}`,
-            type: 'step',
-            animated: true,
-            style: 'stroke: #3dc4ca; stroke-width: 2px;',
-          });
-          break;
-        }
-
-        case 'StorageClass': {
-          nodes.push({
-            id: `sc-${index}`,
-            type: 'kubernetes',
-            position: { x: 150, y: 20 },
-            data: { name: manifest.metadata.name, kind: manifest.kind },
-          });
-          edges.push({
-            id: `sc-${index}-edge`,
-            source: 'chart-root',
-            target: `sc-${index}`,
-            type: 'step',
-            animated: true,
-            style: 'stroke: #3dc4ca; stroke-width: 2px;',
-          });
-          break;
-        }
-
-        case 'IngressClass': {
-          nodes.push({
-            id: `ic-${index}`,
-            type: 'kubernetes',
-            position: { x: 150, y: 20 },
-            data: { name: manifest.metadata.name, kind: manifest.kind },
-          });
-          edges.push({
-            id: `ic-${index}-edge`,
-            source: 'chart-root',
-            target: `ic-${index}`,
-            type: 'step',
-            animated: true,
-            style: 'stroke: #3dc4ca; stroke-width: 2px;',
-          });
-          break;
-        }
+        newEdges.push({
+          id: `${id}-edge`,
+          source: 'chart-root',
+          target: id,
+          type: 'step',
+          animated: true,
+          style: 'stroke: #3dc4ca; stroke-width: 2px;',
+        });
       }
     });
+
+    const layouted = getLayoutedElements(newNodes, newEdges, 'LR');
+    nodes = layouted.nodes;
+    edges = layouted.edges;
   });
 </script>
 
 <div class="graph-container">
-  <SvelteFlow
-    bind:nodes
-    bind:edges
-    {nodeTypes}
-    fitView
-    fitViewOptions={{ padding: 0.3, duration: 200 }}
-    proOptions={{ hideAttribution: true }}
-  >
+  <SvelteFlow bind:nodes bind:edges {nodeTypes} fitView proOptions={{ hideAttribution: true }}>
     <Background gap={20} size={1} bgColor="#414868" />
   </SvelteFlow>
 </div>

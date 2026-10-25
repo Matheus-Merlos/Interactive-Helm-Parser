@@ -30,6 +30,8 @@
   let renderedCharts = $state<Record<string, string>>({});
   let isRendering = $state(false);
 
+  let parsedManifests = $derived(parseManifests(Object.values(renderedCharts).join('\n---\n')));
+
   $effect(() => {
     const files = chartFiles;
     const content = editorContent;
@@ -226,7 +228,7 @@
       </div>
     </div>
     <div class="text-container">
-      {#if activeSidebarTab === 'manifests'}
+      <div class="tab-pane" class:hidden={activeSidebarTab !== 'manifests'}>
         <div class="editor-header">
           <img src="img/kubernetes.png" alt="Kubernetes Icon" width="40" />
           <h2>Rendered Manifests</h2>
@@ -239,17 +241,16 @@
             >Download Manifests</button
           >
         </div>
-      {:else if activeSidebarTab === 'graph'}
-        <div class="graph-container">
+      </div>
+
+      <div class="tab-pane" class:hidden={activeSidebarTab !== 'graph'}>
+        <div class="graph-container-wrapper">
           <div class="editor-header">
             <Network size={40} strokeWidth={1.4} />
             <h2>Graph View</h2>
           </div>
           <div class="graph-content">
-            <GraphView
-              bind:releaseName
-              manifests={parseManifests(Object.values(renderedCharts).join('\n---\n'))}
-            />
+            <GraphView bind:releaseName manifests={parsedManifests} />
           </div>
           <div class="editor-footer">
             <button
@@ -259,7 +260,7 @@
             >
           </div>
         </div>
-      {/if}
+      </div>
     </div>
   </div>
   <aside class="view-selector">
@@ -359,7 +360,20 @@
     }
   }
 
-  .graph-container {
+  .tab-pane {
+    display: flex;
+    flex-direction: column;
+    height: 100%;
+    width: 100%;
+    min-height: 0;
+    overflow: hidden;
+  }
+
+  .tab-pane.hidden {
+    display: none !important;
+  }
+
+  .graph-container-wrapper {
     flex: 1;
     min-height: 0;
     display: flex;
@@ -372,6 +386,7 @@
     min-height: 0;
     display: flex;
     overflow: hidden;
+    position: relative;
   }
 
   .editor-footer {
