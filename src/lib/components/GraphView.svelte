@@ -81,6 +81,7 @@
     const serviceAccountMap = new SvelteMap<string, string>();
     const clusterRoleMap = new SvelteMap<string, string>();
     const roleMap = new SvelteMap<string, string>();
+    const workloadMap = new SvelteMap<string, Record<string, string>>();
 
     manifests.forEach((manifest, index) => {
       const id = `${manifest.kind.toLowerCase()}-${index}`;
@@ -149,6 +150,9 @@
             });
 
             const spec = (manifest as any).spec;
+
+            const labels = spec?.template?.metadata?.labels ?? {};
+            workloadMap.set(id, labels);
 
             //Service account parsing
             const saName = spec?.template?.spec?.serviceAccountName;
@@ -265,6 +269,75 @@
                   });
                 }
               }
+            });
+
+            break;
+          }
+
+          case 'Service': {
+            newNodes.push({
+              id,
+              type: 'kubernetes',
+              width: NODE_WIDTH,
+              height: NODE_HEIGHT,
+              zIndex: 10,
+              position: { x: 0, y: 0 },
+              data: { name: manifest.metadata.name, kind: manifest.kind },
+            });
+
+            newEdges.push({
+              id: `edge-root-${id}`,
+              source: 'chart-root',
+              target: id,
+              type: 'smoothstep',
+              animated: true,
+              style: 'stroke: #3dc4ca; stroke-width: 2px;',
+            });
+
+            const svc = manifest as any;
+            const selector = svc.spec?.selector;
+
+            if (selector) {
+              for (const [workloadId, workloadLabels] of workloadMap.entries()) {
+                const matches = Object.entries(selector).every(
+                  ([key, value]) => (workloadLabels as Record<string, string>)[key] === value,
+                );
+
+                if (matches) {
+                  newEdges.push({
+                    id: `edge-${id}-${workloadId}`,
+                    source: id,
+                    target: workloadId,
+                    type: 'smoothstep',
+                    animated: true,
+                    style: 'stroke: #3dc4ca; stroke-width: 2px;',
+                  });
+                  break;
+                }
+              }
+            }
+
+            break;
+          }
+
+          default: {
+            newNodes.push({
+              id,
+              type: 'kubernetes',
+              width: NODE_WIDTH,
+              height: NODE_HEIGHT,
+              zIndex: 10,
+              position: { x: 0, y: 0 },
+              data: { name: manifest.metadata.name, kind: manifest.kind },
+            });
+
+            newEdges.push({
+              id: `edge-root-${id}`,
+              source: 'chart-root',
+              target: id,
+              type: 'smoothstep',
+              animated: true,
+              style: 'stroke: #3dc4ca; stroke-width: 2px;',
             });
 
             break;
