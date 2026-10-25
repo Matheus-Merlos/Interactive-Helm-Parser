@@ -53,21 +53,27 @@
 
 <style>
   .editor-container {
+    flex: 1;
+    min-height: 0;
     width: 100%;
     height: 100%;
-    min-height: 400px;
-    border-radius: 8px;
     overflow: hidden;
+    border-radius: 8px;
     text-align: left;
     font-family: 'Fira Code', 'JetBrains Mono', monospace;
-    max-width: 50vw;
+  }
+
+  :global(.cm-editor) {
+    height: 100% !important;
+    overflow: hidden;
+  }
+
+  :global(.cm-scroller) {
+    height: 100% !important;
+    overflow: auto !important;
   }
 
   .read-only:hover {
     cursor: not-allowed;
-  }
-
-  :global(.cm-editor) {
-    height: 100%;
   }
 </style>

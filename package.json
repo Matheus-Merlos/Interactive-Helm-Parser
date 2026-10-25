@@ -13,7 +13,8 @@
 		"lint": "prettier --check . && eslint .",
 		"format": "prettier --write .",
 		"test:unit": "vitest",
-		"test": "npm run test:unit -- --run"
+		"test": "npm run test:unit -- --run",
+  		"copy:shoelace": "mkdir -p static/assets/shoelace && cp -r node_modules/@shoelace-style/shoelace/dist/assets static/assets/shoelace"
 	},
 	"devDependencies": {
 		"@commitlint/cli": "^21.2.4",
@@ -54,6 +55,7 @@
 		"@uiw/codemirror-theme-tokyo-night": "^4.25.12",
 		"codemirror": "^6.0.2",
 		"fflate": "^0.8.3",
+		"lucide-svelte": "^1.0.1",
 		"modern-tar": "^0.8.6",
 		"svelte-sonner": "^1.2.1"
 	}

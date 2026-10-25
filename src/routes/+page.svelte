@@ -1,13 +1,24 @@
 <script lang="ts">
+  import { Bug, FileText, Key, Network, ScrollText } from 'lucide-svelte';
+  import '@shoelace-style/shoelace/dist/components/input/input.js';
+
   import YAMLEditor from '#lib/components/YAMLEditor.svelte';
   import { toast } from 'svelte-sonner';
   import { gunzipSync } from 'fflate';
   import { unpackTar } from 'modern-tar';
   import { renderHelmTemplate } from '#lib';
+  import ApplicationHeader from '#lib/components/ApplicationHeader.svelte';
 
   const MAX_UPLOAD_SIZE = 50 * 1024 * 1024;
   const MAX_UNCOMPRESSED_SIZE = 100 * 1024 * 1024;
   const MAX_FILES_COUNT = 1000;
+
+  let activeSidebarTab = $state<'manifests' | 'graph' | 'vulnerabilities'>('manifests');
+
+  let fileName = $state<string>('');
+
+  let releaseName = $state<string>('');
+  let releaseNamespace = $state<string>('');
 
   let editorContent = $state<string>('');
   let chartFiles = $state<Record<string, string>>({});
@@ -29,7 +40,7 @@
 
     isRendering = true;
 
-    renderHelmTemplate(files, content, name, version)
+    renderHelmTemplate(files, content, name, version, releaseName, releaseNamespace)
       .then((result) => {
         renderedCharts = result;
       })
@@ -45,6 +56,7 @@
   function clearState() {
     chartFiles = {};
     chartMetadata = null;
+    fileName = '';
   }
 
   function normalizeChartPaths(rawFiles: Record<string, string>): Record<string, string> {
@@ -115,6 +127,8 @@
       return;
     }
 
+    fileName = targetFile.name;
+
     try {
       const arrayBuffer = await targetFile.arrayBuffer();
       const compressedBytes = new Uint8Array(arrayBuffer);
@@ -162,29 +176,161 @@
   }
 </script>
 
-<div class="layout">
-  <div class="wrapper-editor">
-    <div>
-      <input type="file" accept=".tgz,.tar.gz" onchange={handleFileUpload} />
+<ApplicationHeader
+  onChartUpload={handleFileUpload}
+  bind:fileName
+  bind:releaseName
+  bind:releaseNamespace
+/>
+<main class="layout">
+  <div id="editor-group">
+    <div class="text-container">
+      <div class="editor-header">
+        <FileText size={37.5} strokeWidth={1.1} />
+        <h2>Values</h2>
+      </div>
+      <YAMLEditor bind:value={editorContent} />
     </div>
-    <YAMLEditor bind:value={editorContent} />
+    <div class="text-container">
+      {#if activeSidebarTab === 'manifests'}
+        <div class="editor-header">
+          <img src="img/kubernetes.png" alt="Kubernetes Icon" width="40" />
+          <h2>Rendered Manifests</h2>
+        </div>
+        <YAMLEditor value={Object.values(renderedCharts).join('\n---\n')} readOnly />
+      {/if}
+    </div>
   </div>
-  <section class="view-selector">
-    <YAMLEditor value={Object.values(renderedCharts).join('\n---\n')} readOnly />
-  </section>
-</div>
+  <aside class="view-selector">
+    <button
+      id={activeSidebarTab === 'manifests' ? 'active' : ''}
+      onclick={() => (activeSidebarTab = 'manifests')}
+    >
+      <ScrollText size={30} style="opacity: 0.6;" />
+      <span class="sidebar-title">Manifests</span>
+    </button>
+    <button
+      id={activeSidebarTab === 'graph' ? 'active' : ''}
+      onclick={() => (activeSidebarTab = 'graph')}
+    >
+      <Network size={30} style="opacity: 0.6;" />
+      <span class="sidebar-title">Graph</span>
+    </button>
+    <button
+      id={activeSidebarTab === 'vulnerabilities' ? 'active' : ''}
+      onclick={() => (activeSidebarTab = 'vulnerabilities')}
+    >
+      <Bug size={30} style="opacity: 0.6;" />
+      <span class="sidebar-title">Vulns</span>
+    </button>
+  </aside>
+</main>
 
 <style>
+  @import url('https://fonts.googleapis.com/css2?family=Noto+Sans:ital,wght@0,100..900;1,100..900&display=swap');
+  @import url('https://fonts.googleapis.com/css2?family=Inter:ital,opsz,wght@0,14..32,100..900;1,14..32,100..900&display=swap');
+  :root {
+    --header-purple: #23233f;
+    --smooth-white: #f0eff6;
+    --light-blue: #3dc4ca;
+    --smooth-dark: #1a1c29;
+    --light-blue-2: #6cb0b6;
+
+    --background-color: #131521;
+    --editor-header-background: #212735;
+  }
   .layout {
     display: flex;
     flex-direction: row;
+    justify-content: space-between;
+    align-items: stretch;
     gap: 1rem;
-    height: 80vh;
-  }
-  .wrapper-editor {
+    overflow: hidden;
+    background-color: var(--background-color);
     flex: 1;
   }
+
+  #editor-group {
+    display: flex;
+    flex-direction: row;
+    justify-content: center;
+    align-items: center;
+    gap: 1rem;
+    flex: 1;
+    min-height: 0;
+    overflow: hidden;
+    align-self: center;
+    padding: 0 2rem;
+  }
+
+  .text-container {
+    flex: 1;
+    min-width: 0;
+    max-width: 50%;
+    height: 75vh;
+    display: flex;
+    flex-direction: column;
+    min-height: 0;
+    overflow: hidden;
+    border-radius: 12.5px;
+  }
+
+  .editor-header {
+    background-color: var(--editor-header-background);
+
+    display: flex;
+    flex-direction: row;
+    align-items: center;
+    flex-shrink: 0;
+    gap: 10px;
+    padding: 2.5px 25px;
+
+    position: sticky;
+    top: 0;
+    z-index: 10;
+
+    color: var(--smooth-white);
+
+    h2 {
+      font-family: 'Inter', 'Arial', sans-serif;
+      font-weight: 600;
+      font-size: 16pt;
+    }
+  }
+
   .view-selector {
-    flex: 1;
+    display: flex;
+    flex-direction: column;
+
+    background-color: var(--smooth-dark);
+    min-width: 110px;
+
+    button {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+
+      border: none;
+      background-color: transparent;
+      transition: background-color 0.3s ease;
+
+      gap: 5px;
+      padding: 25px 20px;
+
+      &:hover {
+        cursor: pointer;
+        background-color: rgba(255, 255, 255, 0.1);
+      }
+    }
+  }
+  .sidebar-title {
+    font-family: 'Inter', 'Arial', sans-serif;
+    font-weight: 350;
+    opacity: 0.7;
+  }
+
+  #active {
+    background-color: color-mix(in srgb, var(--smooth-dark) 92.5%, white);
+    border-left: 5px solid var(--light-blue-2);
   }
 </style>

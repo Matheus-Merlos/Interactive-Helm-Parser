@@ -2,7 +2,9 @@
   import { Toaster } from 'svelte-sonner';
   import type { LayoutProps } from './$types';
   import '@shoelace-style/shoelace/dist/themes/dark.css';
-  import '@shoelace-style/shoelace/dist/components/input/input.js';
+  import { setBasePath } from '@shoelace-style/shoelace';
+
+  setBasePath('/assets/shoelace');
 
   let { children }: LayoutProps = $props();
 </script>
@@ -17,8 +19,17 @@
 </div>
 
 <style>
+  * {
+    box-sizing: border-box;
+    padding: 0;
+    margin: 0;
+    border: 0;
+  }
   .app-shell {
-    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+
+    height: 100vh;
     background-color: var(--sl-color-neutral-950);
     color: var(--sl-color-neutral-50);
     font-family: var(--sl-font-sans);
