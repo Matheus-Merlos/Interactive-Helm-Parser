@@ -1,5 +1,5 @@
 <script lang="ts">
-  import { Bug, FileText, Network, ScrollText } from 'lucide-svelte';
+  import { FileText, Network, ScrollText } from 'lucide-svelte';
   import '@shoelace-style/shoelace/dist/components/input/input.js';
 
   import YAMLEditor from '#lib/components/YAMLEditor.svelte';
@@ -8,6 +8,9 @@
   import { unpackTar } from 'modern-tar';
   import { renderHelmTemplate } from '#lib';
   import ApplicationHeader from '#lib/components/ApplicationHeader.svelte';
+  import GraphView from '#lib/components/GraphView.svelte';
+  import type { KubernetesManifest } from '#lib/types.ts';
+  import * as yaml from 'js-yaml';
 
   const MAX_UPLOAD_SIZE = 50 * 1024 * 1024;
   const MAX_UNCOMPRESSED_SIZE = 100 * 1024 * 1024;
@@ -25,7 +28,7 @@
   let chartMetadata = $state<{ name: string; version: string } | null>(null);
 
   let renderedCharts = $state<Record<string, string>>({});
-  let isRendering = $state(false);
+  let parsedManifests = $derived(parseManifests(Object.values(renderedCharts).join('\n---\n')));
 
   $effect(() => {
     const files = chartFiles;
@@ -38,8 +41,6 @@
       return;
     }
 
-    isRendering = true;
-
     renderHelmTemplate(files, content, name, version, releaseName, releaseNamespace)
       .then((result) => {
         renderedCharts = result;
@@ -47,9 +48,6 @@
       .catch((err) => {
         toast.error(`Error while rendering: ${err.message}`);
         renderedCharts = {};
-      })
-      .finally(() => {
-        isRendering = false;
       });
   });
 
@@ -72,6 +70,17 @@
     chartFiles = {};
     chartMetadata = null;
     fileName = '';
+  }
+
+  function parseManifests(yamlString: string): Array<KubernetesManifest> {
+    if (!yamlString || yamlString.trim() === '') return [];
+
+    const docs = yaml.loadAll(yamlString) as Array<KubernetesManifest | null | undefined>;
+
+    return docs.filter(
+      (doc): doc is KubernetesManifest =>
+        doc != null && typeof doc === 'object' && 'kind' in doc && 'metadata' in doc,
+    );
   }
 
   function normalizeChartPaths(rawFiles: Record<string, string>): Record<string, string> {
@@ -212,7 +221,7 @@
       </div>
     </div>
     <div class="text-container">
-      {#if activeSidebarTab === 'manifests'}
+      <div class="tab-pane" class:hidden={activeSidebarTab !== 'manifests'}>
         <div class="editor-header">
           <img src="img/kubernetes.png" alt="Kubernetes Icon" width="40" />
           <h2>Rendered Manifests</h2>
@@ -225,7 +234,26 @@
             >Download Manifests</button
           >
         </div>
-      {/if}
+      </div>
+
+      <div class="tab-pane" class:hidden={activeSidebarTab !== 'graph'}>
+        <div class="graph-container-wrapper">
+          <div class="editor-header">
+            <Network size={40} strokeWidth={1.4} />
+            <h2>Graph View</h2>
+          </div>
+          <div class="graph-content">
+            <GraphView bind:releaseName manifests={parsedManifests} />
+          </div>
+          <div class="editor-footer">
+            <button
+              onclick={() =>
+                downloadFile(Object.values(renderedCharts).join('\n---\n'), 'manifests.yaml')}
+              >Download Manifests</button
+            >
+          </div>
+        </div>
+      </div>
     </div>
   </div>
   <aside class="view-selector">
@@ -242,13 +270,6 @@
     >
       <Network size={30} style="opacity: 0.6;" />
       <span class="sidebar-title">Graph</span>
-    </button>
-    <button
-      id={activeSidebarTab === 'vulnerabilities' ? 'active' : ''}
-      onclick={() => (activeSidebarTab = 'vulnerabilities')}
-    >
-      <Bug size={30} style="opacity: 0.6;" />
-      <span class="sidebar-title">Vulns</span>
     </button>
   </aside>
 </main>
@@ -323,6 +344,35 @@
       font-weight: 600;
       font-size: 16pt;
     }
+  }
+
+  .tab-pane {
+    display: flex;
+    flex-direction: column;
+    height: 100%;
+    width: 100%;
+    min-height: 0;
+    overflow: hidden;
+  }
+
+  .tab-pane.hidden {
+    display: none !important;
+  }
+
+  .graph-container-wrapper {
+    flex: 1;
+    min-height: 0;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+  }
+
+  .graph-content {
+    flex: 1;
+    min-height: 0;
+    display: flex;
+    overflow: hidden;
+    position: relative;
   }
 
   .editor-footer {
