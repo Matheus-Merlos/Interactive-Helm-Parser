@@ -82,6 +82,7 @@
     const clusterRoleMap = new SvelteMap<string, string>();
     const roleMap = new SvelteMap<string, string>();
     const workloadMap = new SvelteMap<string, Record<string, string>>();
+    const pvcMap = new SvelteMap<string, string>();
 
     manifests.forEach((manifest, index) => {
       const id = `${manifest.kind.toLowerCase()}-${index}`;
@@ -96,6 +97,10 @@
         }
         case 'Role': {
           roleMap.set(manifest.metadata.name, id);
+          break;
+        }
+        case 'PersistentVolumeClaim': {
+          pvcMap.set(manifest.metadata.name, id);
           break;
         }
       }
@@ -210,6 +215,22 @@
               type: 'step',
               animated: true,
               style: 'stroke: #3dc4ca; stroke-width: 2px;',
+            });
+
+            const volumes = spec?.template?.spec?.volumes ?? [];
+            volumes.forEach((vol: any) => {
+              const claimName = vol?.persistentVolumeClaim?.claimName;
+              if (claimName && pvcMap.has(claimName)) {
+                const pvcId = pvcMap.get(claimName)!;
+                newEdges.push({
+                  id: `edge-${pvcId}-${id}`,
+                  source: pvcId,
+                  target: id,
+                  type: 'smoothstep',
+                  animated: true,
+                  style: 'stroke: #3dc4ca; stroke-width: 2px;',
+                });
+              }
             });
 
             break;

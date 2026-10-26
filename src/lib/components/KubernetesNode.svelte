@@ -1,15 +1,21 @@
 <script lang="ts">
   import { Handle, Position, type Node } from '@xyflow/svelte';
   import {
+    BookKey,
     Box,
     Boxes,
     Component,
     Cpu,
     Cuboid,
+    Database,
     DatabaseZap,
+    Factory,
     FileCheck,
+    HardDrive,
     Key,
     Layers,
+    List,
+    Network,
     Puzzle,
     ServerCog,
     ShieldCheck,
@@ -46,6 +52,12 @@
     DaemonSet: Cpu,
     Container: Cuboid,
     InitContainer: Box,
+    PersistentVolumeClaim: HardDrive,
+    PersistentVolume: Database,
+    ConfigMap: List,
+    Secret: BookKey,
+    Job: Factory,
+    Service: Network,
   };
 
   const Icon = $derived(iconMap[data.kind] ?? Box);

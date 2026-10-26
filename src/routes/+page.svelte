@@ -1,5 +1,5 @@
 <script lang="ts">
-  import { Bug, FileText, Network, ScrollText } from 'lucide-svelte';
+  import { FileText, Network, ScrollText } from 'lucide-svelte';
   import '@shoelace-style/shoelace/dist/components/input/input.js';
 
   import YAMLEditor from '#lib/components/YAMLEditor.svelte';
@@ -28,8 +28,6 @@
   let chartMetadata = $state<{ name: string; version: string } | null>(null);
 
   let renderedCharts = $state<Record<string, string>>({});
-  let isRendering = $state(false);
-
   let parsedManifests = $derived(parseManifests(Object.values(renderedCharts).join('\n---\n')));
 
   $effect(() => {
@@ -43,8 +41,6 @@
       return;
     }
 
-    isRendering = true;
-
     renderHelmTemplate(files, content, name, version, releaseName, releaseNamespace)
       .then((result) => {
         renderedCharts = result;
@@ -52,9 +48,6 @@
       .catch((err) => {
         toast.error(`Error while rendering: ${err.message}`);
         renderedCharts = {};
-      })
-      .finally(() => {
-        isRendering = false;
       });
   });
 
@@ -277,13 +270,6 @@
     >
       <Network size={30} style="opacity: 0.6;" />
       <span class="sidebar-title">Graph</span>
-    </button>
-    <button
-      id={activeSidebarTab === 'vulnerabilities' ? 'active' : ''}
-      onclick={() => (activeSidebarTab = 'vulnerabilities')}
-    >
-      <Bug size={30} style="opacity: 0.6;" />
-      <span class="sidebar-title">Vulns</span>
     </button>
   </aside>
 </main>
