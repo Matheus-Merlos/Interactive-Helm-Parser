@@ -52,7 +52,7 @@
   });
 
   function downloadFile(content: string, fileName: string) {
-    const blob = new Blob([content], { type: 'text/yaml;chartset=utf-8' });
+    const blob = new Blob([content], { type: 'text/yaml;charset=utf-8' });
     const url = URL.createObjectURL(blob);
 
     const link = document.createElement('a');
@@ -187,6 +187,7 @@
         if (fileCount > MAX_FILES_COUNT) {
           toast.error('File limit exceeded.');
           clearState();
+          return;
         }
         files[entry.header.name] = decoder.decode(entry.data);
       }
