@@ -14,7 +14,7 @@ describe('ApplicationHeader', () => {
     render(ApplicationHeader, { onChartUpload: vi.fn() });
 
     expect(screen.getByRole('heading', { name: 'Helm Lab' })).toBeInTheDocument();
-    expect(screen.getByAltText('Helm Icon')).toHaveAttribute('src', 'img/helm.png');
+    expect(screen.getByAltText('Helm Icon')).toHaveAttribute('src', '/img/helm.png');
   });
 
   it('shows the upload label when there is no file', () => {

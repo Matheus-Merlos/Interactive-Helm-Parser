@@ -1,6 +1,7 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 let isLoaded = false;
 let loadPromise: Promise<void> | null = null;
+import { asset } from '$app/paths';
 
 export async function initHelmWasm(): Promise<void> {
   if (isLoaded) return;
@@ -10,7 +11,7 @@ export async function initHelmWasm(): Promise<void> {
     if (!(window as any).Go) {
       await new Promise<void>((resolve, reject) => {
         const script = document.createElement('script');
-        script.src = '/wasm/wasm_exec.js';
+        script.src = asset('wasm/wasm_exec.js');
         script.onload = () => resolve();
         script.onerror = () => reject(new Error('Fail while loading wasm_exec.js'));
         document.head.appendChild(script);
@@ -20,7 +21,7 @@ export async function initHelmWasm(): Promise<void> {
     const Go = (window as any).Go;
     const go = new Go();
 
-    const response = await fetch('/wasm/helm-template.wasm');
+    const response = await fetch(asset('wasm/helm-template.wasm'));
     if (!response.ok) {
       throw new Error(`Error while downloading WASM Binary: ${response.statusText}`);
     }

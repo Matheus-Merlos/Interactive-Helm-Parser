@@ -11,6 +11,7 @@
   import GraphView from '#lib/components/GraphView.svelte';
   import type { KubernetesManifest } from '#lib/types.ts';
   import * as yaml from 'js-yaml';
+  import { asset } from '$app/paths';
 
   const MAX_UPLOAD_SIZE = 50 * 1024 * 1024;
   const MAX_UNCOMPRESSED_SIZE = 100 * 1024 * 1024;
@@ -224,7 +225,7 @@
     <div class="text-container">
       <div class="tab-pane" class:hidden={activeSidebarTab !== 'manifests'}>
         <div class="editor-header">
-          <img src="img/kubernetes.png" alt="Kubernetes Icon" width="40" />
+          <img src={asset('img/kubernetes.png')} alt="Kubernetes Icon" width="40" />
           <h2>Rendered Manifests</h2>
         </div>
         <YAMLEditor value={Object.values(renderedCharts).join('\n---\n')} readOnly />
