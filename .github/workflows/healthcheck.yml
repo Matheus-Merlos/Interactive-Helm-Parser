@@ -12,5 +12,5 @@ jobs:
     steps:
       - name: Healthcheck
         run: |
-            URL="https://$(echo '${{ github.repository_owner }}' | tr '[:upper:]' '[:lower:]').github.io/${{ github.event.repository.name }}/"
-            curl --retry 3 --retry-delay 5 -sS "$URL" | grep -q "${{ github.event.repository.name }}"
+          URL="https://$(echo '${{ github.repository_owner }}' | tr '[:upper:]' '[:lower:]').github.io/${{ github.event.repository.name }}/"
+          curl --retry 3 --retry-delay 5 -sS "$URL" | grep -q "${{ github.event.repository.name }}"
