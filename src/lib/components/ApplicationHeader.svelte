@@ -1,5 +1,6 @@
 <script lang="ts">
   import { Bolt, Upload } from 'lucide-svelte';
+  import { asset } from '$app/paths';
 
   type Props = {
     onChartUpload: (event: Event) => void;
@@ -18,7 +19,7 @@
 
 <header class="header">
   <div class="icon-container">
-    <img src="img/helm.png" alt="Helm Icon" id="icon" />
+    <img src={asset('img/helm.png')} alt="Helm Icon" id="icon" />
     <h1>Helm Lab</h1>
   </div>
   <div class="upload-container">
