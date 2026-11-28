@@ -96,7 +96,7 @@ jobs:
 
       - name: Type Check
         run: pnpm check
-      
+
       - name: Lint PR title
         env:
           PR_TITLE: ${{ github.event.pull_request.title }}
