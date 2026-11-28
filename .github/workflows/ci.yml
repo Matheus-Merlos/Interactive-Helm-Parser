@@ -1,31 +1,124 @@
 name: CI
 
+run-name: CI Checks for ${{ github.head_ref }}
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.head_ref }}
+  cancel-in-progress: true
+
 on:
-  push:
+  pull_request:
     branches:
       - master
+    types:
+      - opened
+      - edited
+      - synchronize
+      - reopened
 
 jobs:
   build:
-    name: 'Phase 1: Build'
+    name: Build Check
     runs-on: ubuntu-latest
     steps:
       - name: Checkout code
         uses: actions/checkout@v7
 
-      - name: Setup Node
-        uses: actions/setup-node@v7
-        with:
-          node-version: '26.12.1'
-
       - name: Setup pnpm
         uses: pnpm/setup@v3
         with:
           version: '12.9.0'
-          runtime: node@26
+          runtime: node@26.12.1
+          cache: true
+          install: false
 
       - name: Install dependencies
         run: pnpm ci
 
       - name: Build Application
         run: pnpm build
+
+  security:
+    name: Security Check
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v7
+        with:
+          fetch-depth: 0
+
+      - name: Setup pnpm
+        uses: pnpm/setup@v3
+        with:
+          version: '12.9.0'
+          install: false
+
+      - name: Install Semgrep
+        run: pipx install semgrep
+
+      - name: Validate Dependencies
+        run: pnpm audit --audit-level high
+
+      - name: Validate Code
+        run: |
+          semgrep scan \
+            --config p/default \
+            --severity ERROR \
+            --error \
+            --metrics=off \
+            src
+
+      - name: Secret Scanning
+        uses: gitleaks/gitleaks-action@v3
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+  lint:
+    name: Lint & Type Check
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v7
+
+      - name: Setup pnpm
+        uses: pnpm/setup@v3
+        with:
+          version: '12.9.0'
+          runtime: node@26.12.1
+          cache: true
+          install: false
+
+      - name: Install dependencies
+        run: pnpm ci
+
+      - name: Lint Check
+        run: pnpm lint
+
+      - name: Type Check
+        run: pnpm check
+
+      - name: Lint PR title
+        env:
+          PR_TITLE: ${{ github.event.pull_request.title }}
+        run: echo "$PR_TITLE" | pnpm exec commitlint --verbose
+
+  tests:
+    name: Unitary & Component Tests Check
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v7
+
+      - name: Setup pnpm
+        uses: pnpm/setup@v3
+        with:
+          version: '12.9.0'
+          runtime: node@26.12.1
+          cache: true
+          install: false
+
+      - name: Install dependencies
+        run: pnpm ci
+
+      - name: Run Tests
+        run: pnpm test:coverage

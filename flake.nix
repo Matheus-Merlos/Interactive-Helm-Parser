@@ -3,12 +3,18 @@
 
   inputs = {
     nixpkgs.url = "github:NixOS/nixpkgs/nixos-26.05";
+    nixpkgs-unstable.url = "github:NixOS/nixpkgs/nixpkgs-unstable";
   };
 
-  outputs = { self, nixpkgs }: 
+  outputs = { self, nixpkgs, nixpkgs-unstable }: 
   let
     system = "x86_64-linux";
     pkgs = nixpkgs.legacyPackages.${system};
+
+    unstable = import nixpkgs-unstable {
+      inherit system;
+      config.allowUnfree = true;
+    };
 
     nodejsSpecific = pkgs.stdenv.mkDerivation rec {
       pname = "nodejs";
@@ -33,7 +39,10 @@
     devShells.${system}.default = pkgs.mkShell {
       buildInputs = with pkgs; [
         pnpm_12
-      ] ++ [nodejsSpecific];
+      ] ++ [
+        nodejsSpecific
+        unstable.claude-code
+      ];
     };
   };
 }
